@@ -37,10 +37,12 @@ for frame in sorted(all_frames):
     # need only to check next topic in list
 
     # first check if we're at the end of the list
-    if current_index != len(topics) - 1:
+    if current_index < len(topics):
         # TODO: topic switch seems not entirely reliable, even though order of files should now be forced...
         # prob. just load in the actual datetime and do a proper comparison
-        if Path(frame).stem in next_topic[0]:
+        stemmed_path = Path(frame).stem
+        print(f"Checking if '{stemmed_path}' is in '{next_topic[0]}'")
+        if stemmed_path in next_topic[0]:
             current_topic = next_topic
             current_index += 1
             if current_index != len(topics) - 1:
@@ -54,6 +56,7 @@ for frame in sorted(all_frames):
     # TODO: when confident nothing breaks, make more definite by moving
     # TODO: also find out if this actually the slow part, if so, look into speeding up
     os.system(f'cp {frame} frames/{current_topic[0]}/')
+    print('copying')
     
 
 
