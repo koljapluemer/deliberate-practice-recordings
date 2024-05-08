@@ -1,4 +1,3 @@
-
 import os
 import glob
 from pathlib import Path
@@ -14,14 +13,10 @@ for topic_file in sorted(all_topic_files):
     with open(topic_file, 'r') as f:
         topics.append([Path(topic_file).stem, f.read()])
 
-print("Topics: ", topics)
-
 # make a folder in frames for each topic
 for topic in topics:
     folder_name = topic[0]
-    print(f'mkdir frames/{folder_name}')
     os.system(f'mkdir frames/{topic[0]}')
-
 
 # loop ~/Pictures/timelapse
 current_topic = None
@@ -41,13 +36,11 @@ for frame in sorted(all_frames):
         # TODO: topic switch seems not entirely reliable, even though order of files should now be forced...
         # prob. just load in the actual datetime and do a proper comparison
         stemmed_path = Path(frame).stem
-        print(f"Checking if '{stemmed_path}' is in '{next_topic[0]}'")
         if stemmed_path in next_topic[0]:
             current_topic = next_topic
             current_index += 1
             if current_index != len(topics) - 1:
                 next_topic = topics[current_index + 1]
-            print(f'Frames now will be added to topic: {current_topic}')
     if current_topic is None:
         continue
         
@@ -56,15 +49,16 @@ for frame in sorted(all_frames):
     # TODO: when confident nothing breaks, make more definite by moving
     # TODO: also find out if this actually the slow part, if so, look into speeding up
     os.system(f'cp {frame} frames/{current_topic[0]}/')
-    print('copying')
     
 
-
 # create video for each topic
-
 # for each topic, create a video with `ffmpeg -framerate 5 -pattern_type glob -i '*.png' out.mp4`
 for topic in topics:
     # TODO: slap in the more pleasant replacer, with the unicode hacks `fe55` and what not before this, only then clear out the rest
     video_name = re.sub(r"[/\\?%*:|\"<>\x7F\x00-\x1F]", "-", topic[1])
-
-    os.system(f'ffmpeg -framerate 8 -pattern_type glob -i "frames/{topic[0]}/*.png" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -pix_fmt yuv420p -y "videos/{video_name}.mp4"')
+    video_path = f"videos/{topic[0]}-{video_name}.mp4"
+    # skip if file file exists
+    if os.path.isfile(video_path):
+        print("video already exists")
+    else:
+        os.system(f'ffmpeg -framerate 8 -pattern_type glob -i "frames/{topic[0]}/*.png" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -pix_fmt yuv420p -y "{video_path}"')
