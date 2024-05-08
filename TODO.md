@@ -1,6 +1,3 @@
-- implement mechanism for users to give feedback
-- remove dead code
-- check all files for insufficient inline-comments
-- refactor 1 function
-- think about accessibility strategies
-- think about SEO strategies
+- build corresponding Obsidian habits, structure, maybe template to eval videos
+- see inline todos
+- see that videos are not overwitten (/uniquely names); I'm doing a lot of `relax` blocks for ex.
