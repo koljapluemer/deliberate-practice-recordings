@@ -1,0 +1,15 @@
+{
+  "title": "Deliberate Practice Recordings",
+  "subtitle": "",
+  "status": "alpha",
+  "showOnPortfolio": false,
+  "showAboveFold": false,
+  "imageAltProperty": "Screenshot of Deliberate Practice Recordings",
+  "languages": [],
+  "links": [
+    {
+      "title": "See on GitHub",
+      "url": "https://github.com/koljapluemer/deliberate-practice-recordings"
+    }
+  ]
+}
