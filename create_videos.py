@@ -62,3 +62,11 @@ for topic in topics:
         print("video already exists")
     else:
         os.system(f'ffmpeg -framerate 8 -pattern_type glob -i "frames/{topic[0]}/*.png" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -pix_fmt yuv420p -y "{video_path}"')
+        # also create analysis file in /home/b/MEGA/Obsidian/Zettelkasten/DP
+        with open(f'/home/b/MEGA/Obsidian/Zettelkasten/DP/{topic[0]}-{video_name}.md', 'w') as f:
+            f.write(f'- *Goal was achieved (0-10)*: \n')
+            f.write(f'- *Goal-focus was held (0-10)*: \n')
+            f.write(f'- *Goal was well-designed (0-10)*: \n')
+            f.write(f'- *Session was spent at the edge of comfort (0-10)*: \n')
+            f.write(f'- *Session was spent in a focused manner (0-10)*: \n')
+            f.write("\n\n### Notes\n\n")
