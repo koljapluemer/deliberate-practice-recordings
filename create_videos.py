@@ -4,6 +4,8 @@ from pathlib import Path
 
 import re
 
+from datetime import datetime
+
 topics = []
 
 # loop topics folder
@@ -16,13 +18,15 @@ for topic_file in sorted(all_topic_files):
 # make a folder in frames for each topic
 for topic in topics:
     folder_name = topic[0]
-    os.system(f'mkdir frames/{topic[0]}')
+    Path(f'frames/{folder_name}').mkdir(parents=True, exist_ok=True)
 
 # loop ~/Pictures/timelapse
-current_topic = None
 next_topic = topics[0]
+current_topic = None
+current_cutoff_timestamp = datetime.strptime(next_topic[0], '%Y-%m-%d_%H-%M-%S')
 current_index = -1
 all_frames = glob.glob('/home/b/GITHUB/deliberate-practice-recordings/screenshots/*.png')
+sorted_files = sorted(all_frames, key=lambda x: Path(x).stem)
 # print("All frames: ", all_frames)
 for frame in sorted(all_frames):
     # frames have timestamp.png format
@@ -36,19 +40,20 @@ for frame in sorted(all_frames):
         # TODO: topic switch seems not entirely reliable, even though order of files should now be forced...
         # prob. just load in the actual datetime and do a proper comparison
         stemmed_path = Path(frame).stem
-        if stemmed_path in next_topic[0]:
+        # timestamp is format 2024-05-09_11-39-11
+        timestamp = datetime.strptime(stemmed_path, '%Y-%m-%d_%H-%M-%S')
+        if timestamp > current_cutoff_timestamp:
             current_topic = next_topic
             current_index += 1
             if current_index != len(topics) - 1:
                 next_topic = topics[current_index + 1]
+                current_cutoff_timestamp = datetime.strptime(next_topic[0], '%Y-%m-%d_%H-%M-%S')
     if current_topic is None:
         continue
         
     
     # copy frame into current_folder
-    # TODO: when confident nothing breaks, make more definite by moving
-    # TODO: also find out if this actually the slow part, if so, look into speeding up
-    os.system(f'cp {frame} frames/{current_topic[0]}/')
+    os.system(f'mv {frame} frames/{current_topic[0]}/')
     
 
 # create video for each topic
@@ -67,6 +72,6 @@ for topic in topics:
             f.write(f'- *Goal was achieved (0-10)*: \n')
             f.write(f'- *Goal-focus was held (0-10)*: \n')
             f.write(f'- *Goal was well-designed (0-10)*: \n')
+            f.write(f'- *Session was spent in focus (0-10)*: \n')
             f.write(f'- *Session was spent at the edge of comfort (0-10)*: \n')
-            f.write(f'- *Session was spent in a focused manner (0-10)*: \n')
-            f.write("\n\n### Notes\n\n")
+            f.write("\n### Notes\n\n")

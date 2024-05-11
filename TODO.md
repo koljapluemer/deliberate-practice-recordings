@@ -1,3 +1,2 @@
 - build corresponding Obsidian habits, structure, maybe template to eval videos
 - see inline todos
-- see that videos are not overwitten (/uniquely names); I'm doing a lot of `relax` blocks for ex.
