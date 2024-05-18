@@ -20,7 +20,6 @@ for topic in topics:
     folder_name = topic[0]
     Path(f'frames/{folder_name}').mkdir(parents=True, exist_ok=True)
 
-# loop ~/Pictures/timelapse
 next_topic = topics[0]
 current_topic = None
 current_cutoff_timestamp = datetime.strptime(next_topic[0], '%Y-%m-%d_%H-%M-%S')
@@ -36,7 +35,7 @@ for frame in sorted(all_frames):
     # need only to check next topic in list
 
     # first check if we're at the end of the list
-    if current_index < len(topics):
+    if current_index < len(topics) - 1:
         # TODO: topic switch seems not entirely reliable, even though order of files should now be forced...
         # prob. just load in the actual datetime and do a proper comparison
         stemmed_path = Path(frame).stem
@@ -44,10 +43,9 @@ for frame in sorted(all_frames):
         timestamp = datetime.strptime(stemmed_path, '%Y-%m-%d_%H-%M-%S')
         if timestamp > current_cutoff_timestamp:
             current_topic = next_topic
+            next_topic = topics[current_index + 1]
             current_index += 1
-            if current_index != len(topics) - 1:
-                next_topic = topics[current_index + 1]
-                current_cutoff_timestamp = datetime.strptime(next_topic[0], '%Y-%m-%d_%H-%M-%S')
+            current_cutoff_timestamp = datetime.strptime(next_topic[0], '%Y-%m-%d_%H-%M-%S')
     if current_topic is None:
         continue
         
@@ -69,9 +67,8 @@ for topic in topics:
         os.system(f'ffmpeg -framerate 8 -pattern_type glob -i "frames/{topic[0]}/*.png" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -pix_fmt yuv420p -y "{video_path}"')
         # also create analysis file in /home/b/MEGA/Obsidian/Zettelkasten/DP
         with open(f'/home/b/MEGA/Obsidian/Zettelkasten/DP/{topic[0]}-{video_name}.md', 'w') as f:
-            f.write(f'- *Goal was achieved (0-10)*: \n')
-            f.write(f'- *Goal-focus was held (0-10)*: \n')
-            f.write(f'- *Goal was well-designed (0-10)*: \n')
-            f.write(f'- *Session was spent in focus (0-10)*: \n')
-            f.write(f'- *Session was spent at the edge of comfort (0-10)*: \n')
-            f.write("\n### Notes\n\n")
+            # copy contents from /home/b/MEGA/Obsidian/Zettelkasten/Templates/DP.md
+            with open('/home/b/MEGA/Obsidian/Zettelkasten/Templates/DP.md', 'r') as template:
+                f.write(template.read())
+        # delete frames folder
+        os.system(f'rm -r frames/{topic[0]}')
