@@ -1,3 +1,6 @@
+db.sqlite
+db.sqlite-journal
+
 frames/
 frames
 screenshots/
