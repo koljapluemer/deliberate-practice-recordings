@@ -3,3 +3,6 @@
 
 
 - videos are getting redone and obs notes overwritten after doing an analysis and running the thing again 
+
+
+- move magic strings into consonants and document

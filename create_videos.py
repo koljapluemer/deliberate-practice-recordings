@@ -106,11 +106,13 @@ def main():
     create_practice_sessions_from_topic_files(db)
     set_next_session_for_each_session(db)
     create_folders_for_frames_from_sessions(db)
-    move_screenshots_of_each_session_into_frames_folder(db, be_quick)
+    move_screenshots_of_each_session_into_frames_folder(db)
     create_video_for_each_session(db, be_quick)
     create_analysis_file_for_each_session(db)
+    delete_video_files_where_obs_analysis_is_done(db)
 
 def string_to_python_datetime(string):
+    string = '_'.join(string.split('_')[:2])
     return datetime.strptime(string, '%Y-%m-%d_%H-%M-%S')
 
 def python_datetime_to_string(dt):
@@ -171,23 +173,20 @@ def create_folders_for_frames_from_sessions(db):
         session.folder_in_frames_was_created = True
 
 @db_session
-def move_screenshots_of_each_session_into_frames_folder(db, be_quick):
+def move_screenshots_of_each_session_into_frames_folder(db):
     # for each practice session, move the screenshots into the folder
     all_sessions = db.PracticeSession.select()
     screenshots = glob.glob('/home/b/GITHUB/deliberate-practice-recordings/screenshots/*.png')
     sorted_screenshot_files = sorted(screenshots, key=lambda x: Path(x).stem)
-    number_of_sessions_treated = 0
-    last_session = None
     for screenshot in tqdm(sorted_screenshot_files):
         # 2024-05-31_20-59-13.png
         filename = Path(screenshot).stem
         timestamp = string_to_python_datetime(filename)
         session = get_session_in_which_a_screenshot_belongs(db, timestamp)
-        if session is not last_session:
-            last_session = session
-            number_of_sessions_treated += 1
-            if be_quick and number_of_sessions_treated > 1:
-                break
+        if session is None:
+            print("No session found for screenshot")
+            continue
+      
         # move (not just copy!!) screenshot into correct frames folder
         target_folder = f'frames/{python_datetime_to_string(session.started_at)}/'
         os.system(f'mv {screenshot} {target_folder}')
@@ -203,17 +202,25 @@ def get_session_in_which_a_screenshot_belongs(db, timestamp):
                 return session
     return None
 
+def combine_date_and_topic_to_name(date, topic):
+    return f"{date}﹕{topic}"
+
 @db_session
 def create_video_for_each_session(db, be_quick):
     # for each practice session, create a video
     # only sessions where screenshots were moved, but video was not created
     all_sessions = db.PracticeSession.select(lambda s: s.screenshots_were_moved and not s.video_was_created)
     for session in all_sessions:
+        # if session has no following session, skip (it's still ongoing)
+        if session.following_session is None:
+            continue
         # skip if file file exists
-        video_path = f"videos/{session.topic}.mp4"
+        video_path = f"videos/{combine_date_and_topic_to_name(python_datetime_to_string(session.started_at), session.topic)}.mp4"
         if os.path.isfile(video_path):
             print("video already exists")
         else:
+            relevant_folder = f'frames/{python_datetime_to_string(session.started_at)}/'
+            print(f'making video for {session.topic} with {len(glob.glob(relevant_folder + "*.png"))} frames')
             os.system(f'ffmpeg -framerate 8 -pattern_type glob -i "frames/{python_datetime_to_string(session.started_at)}/*.png" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -pix_fmt yuv420p -y "{video_path}"')
             os.system(f'rm -r frames/{python_datetime_to_string(session.started_at)}')
             session.video_was_created = True
@@ -227,12 +234,41 @@ def create_analysis_file_for_each_session(db):
     all_sessions = db.PracticeSession.select(lambda s: s.video_was_created and not s.analysis_file_was_created)
     for session in all_sessions:
         # also create analysis file in /home/b/MEGA/Obsidian/Zettelkasten/DP
-        with open(f'/home/b/MEGA/Obsidian/Zettelkasten/DP/{session.topic}.md', 'w') as f:
+        with open(f'/home/b/MEGA/Obsidian/Zettelkasten/DP/{combine_date_and_topic_to_name(python_datetime_to_string(session.started_at), session.topic)}.md', 'w') as f:
             # copy contents from /home/b/MEGA/Obsidian/Zettelkasten/Templates/DP.md
             with open('/home/b/MEGA/Obsidian/Zettelkasten/Templates/DP.md', 'r') as template:
                 f.write(template.read())
             session.analysis_file_was_created = True
 
+def escape_filename_spaces_for_unix(filename):
+    return filename.replace(' ', '\ ')
+
+@db_session
+def delete_video_files_where_obs_analysis_is_done(db):
+    # for each session where analysis file was created, check if ANALYSIS file a) exists b) ANALYSIS FILE is unchanged compared to the template
+    # if either is false, delete the video file
+    all_sessions = db.PracticeSession.select(lambda s: s.analysis_file_was_created)
+    for session in all_sessions:
+        print(f"checking {session.topic}")
+        video_path = f"videos/{combine_date_and_topic_to_name(python_datetime_to_string(session.started_at), session.topic)}.mp4"
+        if not os.path.isfile(video_path):
+            print("video does not exist")
+            continue
+        else:
+            # check if analysis file exists
+            if not os.path.isfile(f'/home/b/MEGA/Obsidian/Zettelkasten/DP/{combine_date_and_topic_to_name(python_datetime_to_string(session.started_at), session.topic)}.md'):
+                os.system(f'rm {escape_filename_spaces_for_unix(video_path)}')
+                print("analysis file does not exist anymore, deleting video")
+                continue
+            # check if analysis file is unchanged
+            with open(f'/home/b/MEGA/Obsidian/Zettelkasten/DP/{combine_date_and_topic_to_name(python_datetime_to_string(session.started_at), session.topic)}.md', 'r') as f:
+                analysis_file_contents = f.read()
+            with open('/home/b/MEGA/Obsidian/Zettelkasten/Templates/DP.md', 'r') as f:
+                template_contents = f.read()
+            if analysis_file_contents != template_contents:
+                os.system(f'rm {escape_filename_spaces_for_unix(video_path)}')
+                print("analysis file has changed, deleting video")
+                continue
 
 if __name__ == '__main__':
     main()
